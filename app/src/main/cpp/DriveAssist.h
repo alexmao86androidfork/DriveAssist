@@ -10,14 +10,14 @@ using namespace cv;
 namespace da
 {
 
-	constexpr float frame_rescaled_width = 400;
+	constexpr int frame_rescaled_width = 320;
 
 	// These constants represent the regions of interest
 	// for detecting lanes in % of frame width/height
-	constexpr double lane_roi_outer_offset = 0.25;
+	constexpr double lane_roi_outer_offset = 0.;//0.25;
 	constexpr double lane_roi_inner_offset = 0.5;
-	constexpr double lane_roi_top_offset = 0.6;
-	constexpr double lane_roi_bottom_offset = .87;
+	constexpr double lane_roi_top_offset = 0.4;//0.6;
+	constexpr double lane_roi_bottom_offset = 1.0;//.87;
 	constexpr double lane_roi_width = lane_roi_inner_offset - lane_roi_outer_offset;
 	constexpr double lane_roi_height = lane_roi_bottom_offset - lane_roi_top_offset;
 
@@ -29,17 +29,15 @@ namespace da
 	constexpr double rad2deg = 57.2957795;
 	constexpr double deg2rad = 0.0174532925;
 
-#define DEBUG_IMG(img) imshow("dbg", img); waitKey(0)
-
-	bool detect_lane_intersection(Mat region, Point region_offset, Size image_size, Vec2f angle_range, float &intersection, float &slope)
+	bool detect_lane_intersection(Mat gray_region, Point region_offset, Size image_size, Vec2f angle_range, float &intersection, float &slope)
 	{
-		Mat hls;
-		cvtColor(region, hls, COLOR_BGR2HLS);
+		//Mat hls;
+		//cvtColor(region, hls, COLOR_BGR2HLS);
 
 		//imshow("Region" + std::to_string(region_offset.x), region);
 
-		Mat gray_region;
-		extractChannel(hls, gray_region, 1);
+		//Mat gray_region;
+		//extractChannel(hls, gray_region, 1);
 
 		//DEBUG_IMG(gray_region);
 
@@ -71,7 +69,7 @@ namespace da
 		{
 			float tmp = max_angle;
 			max_angle = min_angle;
-			min_angle = max_angle;
+			min_angle = tmp;
 		}
 		else if (min_angle == max_angle)
 		{
@@ -120,8 +118,8 @@ namespace da
 		float rho = strongest_line[0];
 		float theta = strongest_line[1];
 
-		float cos_theta = cosf(theta) + 0.0000001;
-		float sin_theta = sinf(theta) + 0.0000001; // Avoid division error
+		float cos_theta = cosf(theta) + 0.0000001f;
+		float sin_theta = sinf(theta) + 0.0000001f; // Avoid division error
 		
 		slope = -cos_theta / sin_theta;
 		//float y_intersection = rho / sin_theta;

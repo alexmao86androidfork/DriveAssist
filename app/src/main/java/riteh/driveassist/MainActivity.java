@@ -14,6 +14,8 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Handler;
+import android.os.HandlerThread;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -43,6 +45,11 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("DriveAssist");
     }
 
+    private void l(String logString) {
+        Log.d(mTag, logString);
+    }
+
+    private String mTag = "MYDBG";
     private Size mPreviewSize;
     private String mCameraId;
     private ImageReader mImageReader;
@@ -51,14 +58,38 @@ public class MainActivity extends AppCompatActivity {
     private CaptureRequest mPreviewCaptureRequest;
     private CaptureRequest.Builder mPreviewCaptureRequestBuilder;
     private CameraCaptureSession mCameraCaptureSession;
+    private HandlerThread mImageReaderThread ;
+    private Handler mImageReaderHandler;
+
+    private HandlerThread mCameraThread;
+    private Handler mCameraHandler;
 
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener
             = new ImageReader.OnImageAvailableListener () {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            Image image = reader.acquireLatestImage();
+            Image image = reader.acquireNextImage();
+
             Image.Plane YPlane = image.getPlanes()[0];
             mYPlaneBuffer = YPlane.getBuffer();
+
+            int imageWidth = image.getWidth();
+            int imageHeight = image.getHeight();
+
+            byte[] YPlaneByteArray = new byte[imageWidth * imageHeight];
+            mYPlaneBuffer.get(YPlaneByteArray, 0, YPlaneByteArray.length);
+
+            float[] intersections = new float[2];
+            float[] slopes = new float[2];
+
+            laneIntersections(imageWidth, imageHeight, YPlaneByteArray, intersections, slopes);
+
+            l("Intersections " + Float.toString(intersections[0]) + ", " + Float.toString(intersections[1]));
+            l("Slopes " + Float.toString(slopes[0]) + ", " + Float.toString(slopes[1]));
+
+
+
+            image.close();
             // TODO: Implement logic for lane detection
         }
     };
@@ -119,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
                                 mCameraCaptureSession.setRepeatingRequest(
                                         mPreviewCaptureRequest,
                                         mSessionCallback,
-                                        null); // TODO: Handle this on background thread
+                                        mCameraHandler);
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                             }
@@ -132,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
                                     "Failed creating capture session",
                                     Toast.LENGTH_SHORT).show();
                         }
-                    }, null); // TODO: This should be handled by a background thread, not null
+                    }, mCameraHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -167,10 +198,12 @@ public class MainActivity extends AppCompatActivity {
     private void openCamera() {
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
-            cameraManager.openCamera(mCameraId, mCameraStateCallback, null);
+            cameraManager.openCamera(mCameraId, mCameraStateCallback, mCameraHandler);
         } catch (SecurityException e) {
+            Log.d("OPEN_CAMERA", "Securtity error");
             e.printStackTrace();
         } catch (CameraAccessException e) {
+            Log.d("OPEN_CAMERA", "Camera access error");
             e.printStackTrace();
         }
     }
@@ -199,6 +232,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mTextureView = (TextureView) this.findViewById(R.id.cameraOutput);
+
+        mCameraThread = new HandlerThread("CameraThread");
+        mCameraThread.start();
+        mCameraHandler = new Handler(mCameraThread.getLooper());
+
+        mImageReaderThread = new HandlerThread("CameraThread");
+        mImageReaderThread.start();
+        mImageReaderHandler = new Handler(mImageReaderThread.getLooper());
+
     }
 
     @Override
@@ -207,22 +249,22 @@ public class MainActivity extends AppCompatActivity {
 
         setupCamera();
 
-        if (mImageReader == null) {
-            mImageReader = ImageReader.newInstance(
-                    mPreviewSize.getWidth(),
-                    mPreviewSize.getHeight(),
-                    ImageFormat.YUV_420_888,
-                    4);
-            // TODO: Backgound thread should handle this, not null;
-            mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
-        }
-
         if (mTextureView.isAvailable()) {
             openCamera();
         }
         else {
             mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         }
+
+        if (mImageReader == null) {
+            mImageReader = ImageReader.newInstance(
+                    mPreviewSize.getWidth(),
+                    mPreviewSize.getHeight(),
+                    ImageFormat.YUV_420_888,
+                    4);
+            mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mImageReaderHandler);
+        }
+
     }
 
     @Override
@@ -258,10 +300,16 @@ public class MainActivity extends AppCompatActivity {
                     continue;
                 }
 
-                // Find smallest image dimension for camera prewiew
+                // Find image dimension with width closest to 320
                 mPreviewSize = Collections.min(
                         Arrays.asList(map.getOutputSizes(ImageFormat.YUV_420_888)),
-                        new CompareSizesByArea());
+                        new Comparator<Size>() {
+                            @Override
+                            public int compare(Size lhs, Size rhs) {
+                                return Math.abs(lhs.getWidth() - 320) - Math.abs(rhs.getWidth() - 320);
+                            }
+                        }
+                );
 
                 mCameraId = cameraId;
                 return;
@@ -276,5 +324,10 @@ public class MainActivity extends AppCompatActivity {
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.
      */
-    public native String laneIntersections();
+    public native boolean laneIntersections(
+            int frameWidth,
+            int frameHeight,
+            byte[] frameByteArrayAddr,
+            float[] outputIntersectionAddr,
+            float[] outputSlopesAddr);
 }
