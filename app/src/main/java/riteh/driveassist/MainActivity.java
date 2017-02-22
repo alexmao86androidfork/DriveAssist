@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onImageAvailable(ImageReader reader) {
             long timeStart = System.currentTimeMillis();
-            Image image = reader.acquireNextImage();
+            Image image = reader.acquireLatestImage();
 
             Image.Plane YPlane = image.getPlanes()[0];
             mYPlaneBuffer = YPlane.getBuffer();
