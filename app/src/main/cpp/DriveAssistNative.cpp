@@ -9,13 +9,17 @@ Java_riteh_driveassist_MainActivity_laneIntersections(
         jobject /*thisObject*/,
         jint frameWidth,
         jint frameHeight,
-        jbyteArray frameByteArrayAddr,
-        jfloatArray outputIntersectionAddr,
-        jfloatArray outputSlopesAddr) {
-
+        jobject frameByteArrayAddress,
+        jfloatArray intersectionsArrayAddress,
+        jfloatArray slopesArrayAddress) {
+/* This works... Make sure you enc->Release..
     unsigned char* frameData = (unsigned char*) env->GetByteArrayElements(frameByteArrayAddr, NULL);
-    float *intersectionArray = env->GetFloatArrayElements(outputIntersectionAddr, NULL);
-    float *slopeArray = env->GetFloatArrayElements(outputSlopesAddr, NULL);
+*/
+    float *intersectionsArray = env->GetFloatArrayElements(intersectionsArrayAddress, NULL);
+    float *slopesArray = env->GetFloatArrayElements(slopesArrayAddress, NULL);
+    unsigned char* frameData = (unsigned char*) env->GetDirectBufferAddress(frameByteArrayAddress);
+    //float *intersectionsArray = (float *) env->GetDirectBufferAddress(intersectionsArrayAddress);
+    //float *slopesArray = (float *) env->GetDirectBufferAddress(slopesArrayAddress);
 
     Mat frame(frameHeight, frameWidth, CV_8UC1, frameData);
 
@@ -24,18 +28,18 @@ Java_riteh_driveassist_MainActivity_laneIntersections(
 
     bool lanesFound = da::lane_intersections(frame, intersections, slopes);
 
-    intersectionArray[0] = intersections[0];
-    intersectionArray[1] = intersections[1];
-    slopeArray[0] = slopes[0];
-    slopeArray[1] = slopes[1];
+    intersectionsArray[0] = intersections[0];
+    intersectionsArray[1] = intersections[1];
+    slopesArray[0] = slopes[0];
+    slopesArray[1] = slopes[1];
 
     jboolean returnValue;
     if (lanesFound) returnValue = JNI_TRUE;
     else returnValue = JNI_FALSE;
 
-    env->ReleaseFloatArrayElements(outputIntersectionAddr, intersectionArray, 0);
-    env->ReleaseFloatArrayElements(outputSlopesAddr, slopeArray, 0);
-    env->ReleaseByteArrayElements(frameByteArrayAddr, (jbyte*) frameData, JNI_ABORT);
+    env->ReleaseFloatArrayElements(intersectionsArrayAddress, intersectionsArray, 0);
+    env->ReleaseFloatArrayElements(slopesArrayAddress, slopesArray, 0);
+    //env->ReleaseByteArrayElements(frameByteArrayAddr, (jbyte*) frameData, JNI_ABORT);
 
     return returnValue;
 }

@@ -64,10 +64,13 @@ public class MainActivity extends AppCompatActivity {
     private HandlerThread mCameraThread;
     private Handler mCameraHandler;
 
+    private byte[] mYPlaneByteArray;
+
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener
             = new ImageReader.OnImageAvailableListener () {
         @Override
         public void onImageAvailable(ImageReader reader) {
+            long timeStart = System.currentTimeMillis();
             Image image = reader.acquireNextImage();
 
             Image.Plane YPlane = image.getPlanes()[0];
@@ -76,20 +79,24 @@ public class MainActivity extends AppCompatActivity {
             int imageWidth = image.getWidth();
             int imageHeight = image.getHeight();
 
-            byte[] YPlaneByteArray = new byte[imageWidth * imageHeight];
-            mYPlaneBuffer.get(YPlaneByteArray, 0, YPlaneByteArray.length);
-
+            /*
+            if (mYPlaneByteArray == null) {
+                //mYPlaneByteArray = new byte[imageWidth * imageHeight];
+            }
+            mYPlaneBuffer.
+            mYPlaneBuffer.get(mYPlaneByteArray, 0, mYPlaneByteArray.length);
+            */
             float[] intersections = new float[2];
             float[] slopes = new float[2];
 
-            laneIntersections(imageWidth, imageHeight, YPlaneByteArray, intersections, slopes);
+            laneIntersections(imageWidth, imageHeight, mYPlaneBuffer, intersections, slopes);
 
             l("Intersections " + Float.toString(intersections[0]) + ", " + Float.toString(intersections[1]));
             l("Slopes " + Float.toString(slopes[0]) + ", " + Float.toString(slopes[1]));
 
-
-
             image.close();
+            long timeEnd = System.currentTimeMillis();
+            l("TimePerFrame: " + Long.toString(timeEnd-timeStart));
             // TODO: Implement logic for lane detection
         }
     };
@@ -237,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
         mCameraThread.start();
         mCameraHandler = new Handler(mCameraThread.getLooper());
 
-        mImageReaderThread = new HandlerThread("CameraThread");
+        mImageReaderThread = new HandlerThread("ImageReaderThread");
         mImageReaderThread.start();
         mImageReaderHandler = new Handler(mImageReaderThread.getLooper());
 
@@ -327,7 +334,8 @@ public class MainActivity extends AppCompatActivity {
     public native boolean laneIntersections(
             int frameWidth,
             int frameHeight,
-            byte[] frameByteArrayAddr,
-            float[] outputIntersectionAddr,
-            float[] outputSlopesAddr);
+            //byte[] frameByteArrayAddr,
+            ByteBuffer frameByteArrayAddress,
+            float[] outputIntersectionAddress,
+            float[] outputSlopesAddress);
 }
