@@ -1,12 +1,27 @@
+#ifndef DRIVEASSISTUTILS_H
+#define DRIVEASSISTUTILS_H
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <functional>
+#include <vector>
 
 using namespace cv;
 
 namespace dautils 
 {
+	Mat YUV2RGBA(Mat y, Mat u, Mat v) {
+		std::vector<Mat> planes {y, u, v};
+		cv::Mat YUV;
+		cv::merge(planes, YUV);
+
+		cv::Mat RGBA;
+		cv::cvtColor(YUV, RGBA, cv::COLOR_YUV2RGBA_NV21);
+
+		return RGBA;
+	}
+
 	/*
 		Resize image to specified width, keeping the aspect ratio
 		input:
@@ -52,3 +67,5 @@ namespace dautils
 		return output;
 	}
 }
+
+#endif

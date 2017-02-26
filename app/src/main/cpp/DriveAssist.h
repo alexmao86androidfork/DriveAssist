@@ -29,15 +29,15 @@ namespace da
 	constexpr double rad2deg = 57.2957795;
 	constexpr double deg2rad = 0.0174532925;
 
-	bool detect_lane_intersection(Mat gray_region, Point region_offset, Size image_size, Vec2f angle_range, float &intersection, float &slope)
+	bool detect_lane_intersection(Mat region, Point region_offset, Size image_size, Vec2f angle_range, float &intersection, float &slope)
 	{
-		//Mat hls;
-		//cvtColor(region, hls, COLOR_BGR2HLS);
+		Mat hls;
+		cvtColor(region, hls, COLOR_BGR2HLS);
 
 		//imshow("Region" + std::to_string(region_offset.x), region);
 
-		//Mat gray_region;
-		//extractChannel(hls, gray_region, 1);
+		Mat gray_region;
+		extractChannel(hls, gray_region, 1);
 
 		//DEBUG_IMG(gray_region);
 

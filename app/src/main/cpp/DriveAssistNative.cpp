@@ -1,4 +1,7 @@
 #include <jni.h>
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
+
 //#include <opencv2/core/core.hpp>
 #include "DriveAssist.h"
 
@@ -7,26 +10,19 @@ jboolean
 Java_riteh_driveassist_MainActivity_laneIntersections(
         JNIEnv *env,
         jobject /*thisObject*/,
-        jint frameWidth,
-        jint frameHeight,
-        jobject frameByteArrayAddress,
+        jlong inputFrameAddress,
         jfloatArray intersectionsArrayAddress,
-        jfloatArray slopesArrayAddress) {
-/* This works... Make sure you enc->Release..
-    unsigned char* frameData = (unsigned char*) env->GetByteArrayElements(frameByteArrayAddr, NULL);
-*/
+        jfloatArray slopesArrayAddress
+) {
+    Mat& inputFrame = *(Mat*) inputFrameAddress;
     float *intersectionsArray = env->GetFloatArrayElements(intersectionsArrayAddress, NULL);
     float *slopesArray = env->GetFloatArrayElements(slopesArrayAddress, NULL);
-    unsigned char* frameData = (unsigned char*) env->GetDirectBufferAddress(frameByteArrayAddress);
-    //float *intersectionsArray = (float *) env->GetDirectBufferAddress(intersectionsArrayAddress);
-    //float *slopesArray = (float *) env->GetDirectBufferAddress(slopesArrayAddress);
-
-    Mat frame(frameHeight, frameWidth, CV_8UC1, frameData);
+    //unsigned char* YPlane = (unsigned char*) env->GetDirectBufferAddress(YPlaneBuffer);
 
     Vec2f intersections;
     Vec2f slopes;
 
-    bool lanesFound = da::lane_intersections(frame, intersections, slopes);
+    bool lanesFound = da::lane_intersections(inputFrame, intersections, slopes);
 
     intersectionsArray[0] = intersections[0];
     intersectionsArray[1] = intersections[1];
@@ -39,7 +35,6 @@ Java_riteh_driveassist_MainActivity_laneIntersections(
 
     env->ReleaseFloatArrayElements(intersectionsArrayAddress, intersectionsArray, 0);
     env->ReleaseFloatArrayElements(slopesArrayAddress, slopesArray, 0);
-    //env->ReleaseByteArrayElements(frameByteArrayAddr, (jbyte*) frameData, JNI_ABORT);
 
     return returnValue;
 }

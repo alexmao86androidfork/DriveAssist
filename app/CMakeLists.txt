@@ -7,6 +7,9 @@ cmake_minimum_required(VERSION 3.4.1)
 set(pathToProject D:/Projects/DriveAssist)
 set(pathToOpenCv D:/Projects/libs/opencv320-android/)
 
+include(AndroidNdkGdb)
+include(AndroidNdkModules)
+
 include_directories( ${pathToOpenCv}/sdk/native/jni/include )
 
 # Creates and names a library, sets it as either STATIC
@@ -36,8 +39,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set_target_properties(lib_opencv PROPERTIES IMPORTED_LOCATION ${pathToProject}/app/src/main/jniLibs/${ANDROID_ABI}/libopencv_java3.so)
 #set_target_properties(lib_opencv PROPERTIES IMPORTED_LOCATION ${pathToOpenCv}/sdk/native/libs/${ANDROID_ABI}/libopencv_java3.so)
 
+
+
 # Link our library with OpenCV
-target_link_libraries( DriveAssist lib_opencv )
+target_link_libraries( DriveAssist lib_opencv android)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because system libraries are included in the search path by
