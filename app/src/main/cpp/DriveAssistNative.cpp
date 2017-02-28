@@ -2,39 +2,50 @@
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 
-//#include <opencv2/core/core.hpp>
-#include "DriveAssist.h"
+#include "DrivingAssistant.h"
 
 extern "C"
-jboolean
-Java_riteh_driveassist_MainActivity_laneIntersections(
+jlong
+Java_riteh_driveassist_DrivingAssistant_nativeCreateDrivingAssistant(
+        JNIEnv *env,
+        jobject /*thisObject*/
+) {
+    jlong drivingAssistantAddress = (jlong) new DrivingAssistant(0.1, 0.3, 0.45, 1.0);
+    return drivingAssistantAddress;
+}
+
+extern "C"
+void
+Java_riteh_driveassist_DrivingAssistant_nativeDestroyDrivingAssistant(
         JNIEnv *env,
         jobject /*thisObject*/,
-        jlong inputFrameAddress,
-        jfloatArray intersectionsArrayAddress,
-        jfloatArray slopesArrayAddress
+        jlong drivingAssistantAddress
 ) {
-    Mat& inputFrame = *(Mat*) inputFrameAddress;
-    float *intersectionsArray = env->GetFloatArrayElements(intersectionsArrayAddress, NULL);
-    float *slopesArray = env->GetFloatArrayElements(slopesArrayAddress, NULL);
-    //unsigned char* YPlane = (unsigned char*) env->GetDirectBufferAddress(YPlaneBuffer);
+    delete (DrivingAssistant *) drivingAssistantAddress;
+}
 
-    Vec2f intersections;
-    Vec2f slopes;
+extern "C"
+void
+Java_riteh_driveassist_DrivingAssistant_nativeUpdate(
+        JNIEnv *env,
+        jobject /*thisObject*/,
+        jlong drivingAssistantAddress,
+        jlong inputFrameAddress,
+        jbooleanArray outIsLaneDepartedAddress,
+        jbooleanArray outIsRedLightDetectedAddress
+) {
+    DrivingAssistant *drivingAssistant = (DrivingAssistant *) drivingAssistantAddress;
+    cv::Mat& inputFrame = *(cv::Mat*) inputFrameAddress;
 
-    bool lanesFound = da::lane_intersections(inputFrame, intersections, slopes);
+    drivingAssistant->update(inputFrame);
 
-    intersectionsArray[0] = intersections[0];
-    intersectionsArray[1] = intersections[1];
-    slopesArray[0] = slopes[0];
-    slopesArray[1] = slopes[1];
+    jboolean *outIsLaneDeparted = env->GetBooleanArrayElements(outIsLaneDepartedAddress, NULL);
+    jboolean *outIsRedLightDetected = env->GetBooleanArrayElements(outIsRedLightDetectedAddress, NULL);
 
-    jboolean returnValue;
-    if (lanesFound) returnValue = JNI_TRUE;
-    else returnValue = JNI_FALSE;
+    outIsLaneDeparted[0] = drivingAssistant->isLaneDeparted();
+    outIsRedLightDetected[0] = drivingAssistant->isRedLightDetected();
 
-    env->ReleaseFloatArrayElements(intersectionsArrayAddress, intersectionsArray, 0);
-    env->ReleaseFloatArrayElements(slopesArrayAddress, slopesArray, 0);
+    env->ReleaseBooleanArrayElements(outIsLaneDepartedAddress, outIsLaneDeparted, 0);
+    env->ReleaseBooleanArrayElements(outIsRedLightDetectedAddress, outIsRedLightDetected, 0);
 
-    return returnValue;
 }

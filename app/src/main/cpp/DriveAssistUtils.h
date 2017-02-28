@@ -11,6 +11,8 @@ using namespace cv;
 
 namespace dautils 
 {
+	constexpr double deg2rad = 0.0174532925;
+
 	Mat YUV2RGBA(Mat y, Mat u, Mat v) {
 		std::vector<Mat> planes {y, u, v};
 		cv::Mat YUV;

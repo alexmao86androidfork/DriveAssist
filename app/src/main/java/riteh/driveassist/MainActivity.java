@@ -28,7 +28,8 @@ import static org.opencv.imgproc.Imgproc.line;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener {
 
-    private JavaCameraView mCameraVeiw;
+    private JavaCameraView mCameraView;
+    private DrivingAssistant mDrivingAssistant;
 
     private BaseLoaderCallback mOpenCVLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -41,7 +42,22 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
                     setupCameraView();
 
-                    mCameraVeiw.enableView();
+                    mDrivingAssistant = new DrivingAssistant(
+                            new DrivingAssistant.LaneDepartureCallback() {
+                                @Override
+                                public void onLaneDepartureDetected() {
+                                    l("Departure detected");
+                                }
+                            },
+                            new DrivingAssistant.RedLightCallback() {
+                                @Override
+                                public void onRedLightDetected() {
+                                    l("Red light detected");
+                                }
+                            }
+                    );
+
+                    mCameraView.enableView();
                     break;
                 }
                 case BaseLoaderCallback.INIT_FAILED: {
@@ -106,8 +122,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             l("No rear facing camera found");
         }
         else {
-            mCameraVeiw.setCameraIndex(Integer.valueOf(foundCamera));
-            mCameraVeiw.setMaxFrameSize(bestResolution.getWidth(), bestResolution.getHeight());
+            mCameraView.setCameraIndex(Integer.valueOf(foundCamera));
+            mCameraView.setMaxFrameSize(bestResolution.getWidth(), bestResolution.getHeight());
         }
     }
 
@@ -125,23 +141,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     public Mat onCameraFrame(Mat inputFrame) {
         long timeStart = System.currentTimeMillis();
 
-        float[] intersections = new float[2];
-        float[] slopes = new float[2];
-
-        laneIntersections(inputFrame.getNativeObjAddr(), intersections, slopes);
-
-        int w = inputFrame.cols(), h = inputFrame.rows();
-        Point p1 = new Point(intersections[0], h);
-        Point p2 = new Point(w / 2, h + (w/2 - intersections[0])*slopes[0]);
-        line(inputFrame, p1, p2, new Scalar(255, 0, 0), 1);
-        p1 = new Point(w/2, h - (intersections[1] - w/2)*slopes[1]);
-        p2 = new Point(intersections[1], h);
-        line(inputFrame, p1, p2, new Scalar(255, 0, 0), 1);
+        mDrivingAssistant.update(inputFrame);
 
         long timeEnd = System.currentTimeMillis();
-
-        l("Intersections " + intersections[0] + ", " + intersections[1]);
-        l("Slopes " + slopes[0] + ", " + slopes[1]);
 
         l("TIMEPERFRAME " + (timeEnd - timeStart));
         return inputFrame;
@@ -159,9 +161,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        mCameraVeiw = (JavaCameraView) this.findViewById(R.id.cameraOutput);
-        mCameraVeiw.setVisibility(CameraBridgeViewBase.VISIBLE);
-        mCameraVeiw.setCvCameraViewListener(this);
+        mCameraView = (JavaCameraView) this.findViewById(R.id.cameraOutput);
+        mCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
+        mCameraView.setCvCameraViewListener(this);
     }
 
     @Override
@@ -180,17 +182,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     @Override
     public void onPause() {
         super.onPause();
-        if (mCameraVeiw != null) {
-            mCameraVeiw.disableView();
+        if (mCameraView != null) {
+            mCameraView.disableView();
         }
     }
-
-    /**
-     * A native method that is implemented by the 'DriveAssist' native library,
-     * which is packaged with this application.
-     */
-    public native boolean laneIntersections(
-            long inputFrame, // Address is pased as long
-            float[] outputIntersectionAddress,
-            float[] outputSlopesAddress);
 }
