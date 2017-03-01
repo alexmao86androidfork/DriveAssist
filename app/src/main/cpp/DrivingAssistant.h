@@ -5,9 +5,15 @@
 #include <opencv2/features2d/features2d.hpp>
 using namespace cv;
 
+typedef struct TrafficLightWScore {
+    KeyPoint kp;
+    int score;
+} TrafficLightWScore;
+
 class DrivingAssistant {
 
 private:
+
     double mLaneIntersectionLeft;
     double mLaneIntersectionRight;
 
@@ -30,8 +36,18 @@ private:
 
     Ptr<SimpleBlobDetector> mDetector;
 
+    float mBlobPaddinFactorUp;
+    float mBlobPaddingFactorSide;
+    int mBlobsInTrafficLight;
+
     Mat *mTemplate1, *mTemplate2, *mTemplate3;
 
+    float mTemplateMatchThreshold;
+
+    std::vector<TrafficLightWScore> mTrafficLightsWScore;
+    int mPixelTolerance;
+
+    std::vector<KeyPoint> mVisibleTrafficLights;
 
 public:
     DrivingAssistant(
@@ -46,8 +62,10 @@ public:
 private:
 // Methods for RED LIGHT DETECTION
     float templateMatchScore(Mat &image_part, Mat &temp);
+    Rect getTrafficLightRect(int max_w, int max_h, KeyPoint kp);
     Mat getTrafficLightFromKeypoint(Mat &image, KeyPoint kp);
-    void detectRedLightsInFrame(Mat &frame);
+    void detectRedLightsInFrame(Mat &inFrame);
+    bool samePoint(KeyPoint kp1, KeyPoint kp2);
 // Methods for LANE DETECTION
     void detectLanesInFrame(Mat &frame);
     bool laneIntersections(Mat &frame, Vec2f &intersections, Vec2f &slopes);

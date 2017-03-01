@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                         public int compare(Size lhs, Size rhs) {
                             int lhsArea = lhs.getHeight() * lhs.getWidth();
                             int rhsArea = rhs.getHeight() * rhs.getWidth();
-                            int tgtArea = 76800; //320x240
+                            int tgtArea = 307200; //640x480
                             return Math.abs(rhsArea - tgtArea) - Math.abs(lhsArea - tgtArea);
                         }
                     }
