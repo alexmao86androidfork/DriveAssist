@@ -7,10 +7,12 @@ public class DrivingAssistant {
 
     public interface LaneDepartureCallback {
         void onLaneDepartureDetected();
+        void onLaneDepartureOver();
     }
 
     public interface RedLightCallback {
         void onRedLightDetected();
+        void onRedLightOver();
     }
 
     // Address of native object
@@ -37,8 +39,26 @@ public class DrivingAssistant {
 
             nativeUpdate(mNativeDrivingAssistant, frame.getNativeObjAddr(), laneDeparted, redLightDetected);
 
-            mLaneDepartureDetected = laneDeparted[0];
-            mRedLightDetected = redLightDetected[0];
+            // If detection status changed call appropriate method
+            if (mLaneDepartureDetected != laneDeparted[0]) {
+                mLaneDepartureDetected = laneDeparted[0];
+                if (mLaneDepartureDetected) {
+                    mOnLaneDepartureCallback.onLaneDepartureDetected();
+                }
+                else {
+                    mOnLaneDepartureCallback.onLaneDepartureOver();
+                }
+            }
+
+            if (mRedLightDetected != redLightDetected[0]) {
+                mRedLightDetected = redLightDetected[0];
+                if (mRedLightDetected) {
+                    mOnRedLightDetectedCallback.onRedLightDetected();
+                }
+                else {
+                    mOnRedLightDetectedCallback.onRedLightOver();
+                }
+            }
         }
 
         if (mLaneDepartureDetected) {

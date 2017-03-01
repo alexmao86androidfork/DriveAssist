@@ -54,6 +54,9 @@ void DrivingAssistant::detectLanesInFrame(Mat &frame) {
     if (mLaneIntersectionLeft > frame.cols * 0.4 || mLaneIntersectionRight < frame.cols * 0.6) {
         mLaneDepartureDetected = true;
     }
+    else {
+        mLaneDepartureDetected = false;
+    }
 
     circle(frame, cv::Point(mLaneIntersectionLeft, frame.rows), 5, cv::Scalar(255, 0, 0), 2);
     circle(frame, cv::Point(mLaneIntersectionRight, frame.rows), 5, cv::Scalar(255, 0, 0), 2);

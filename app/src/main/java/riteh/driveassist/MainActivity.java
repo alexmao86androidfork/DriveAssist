@@ -9,7 +9,9 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.Size;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -42,21 +44,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
                     setupCameraView();
 
-                    mDrivingAssistant = new DrivingAssistant(
-                            new DrivingAssistant.LaneDepartureCallback() {
-                                @Override
-                                public void onLaneDepartureDetected() {
-                                    l("Departure detected");
-                                }
-                            },
-                            new DrivingAssistant.RedLightCallback() {
-                                @Override
-                                public void onRedLightDetected() {
-                                    l("Red light detected");
-                                }
-                            }
-                    );
-
                     mCameraView.enableView();
                     break;
                 }
@@ -71,6 +58,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             super.onManagerConnected(status);
         }
     };
+    private ImageView mWarningImage;
 
     /*
     Setup camera view to use back camera and optimal resolution
@@ -164,7 +152,45 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mCameraView = (JavaCameraView) this.findViewById(R.id.cameraOutput);
         mCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         mCameraView.setCvCameraViewListener(this);
+
+        mWarningImage = (ImageView) this.findViewById(R.id.warningImage);
     }
+
+    DrivingAssistant.RedLightCallback mOnRedLightDetected = new DrivingAssistant.RedLightCallback() {
+        @Override
+        public void onRedLightDetected() {
+            l("Red light detected");
+        }
+
+        @Override
+        public void onRedLightOver() {
+            l("Red light no longer in image");
+        }
+    };
+
+    DrivingAssistant.LaneDepartureCallback mOnLaneDeparture = new DrivingAssistant.LaneDepartureCallback() {
+        @Override
+        public void onLaneDepartureDetected() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    l("Lane departure detected");
+                    mWarningImage.setVisibility(View.VISIBLE);
+                }
+            });
+        }
+
+        @Override
+        public void onLaneDepartureOver() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    l("Lane departure over");
+                    mWarningImage.setVisibility(View.GONE);
+                }
+            });
+        }
+    };
 
     @Override
     public void onResume() {
@@ -177,6 +203,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             l("OpenCV library found inside package. Using it!");
             mOpenCVLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
+
+        mDrivingAssistant = new DrivingAssistant(mOnLaneDeparture, mOnRedLightDetected);
     }
 
     @Override
@@ -184,6 +212,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         super.onPause();
         if (mCameraView != null) {
             mCameraView.disableView();
+        }
+
+        if (mDrivingAssistant != null) {
+            mDrivingAssistant.close();
+            mDrivingAssistant = null;
         }
     }
 }
