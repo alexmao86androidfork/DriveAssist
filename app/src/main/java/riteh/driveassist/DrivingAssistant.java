@@ -60,14 +60,6 @@ public class DrivingAssistant {
                 }
             }
         }
-
-        if (mLaneDepartureDetected) {
-            mOnLaneDepartureCallback.onLaneDepartureDetected();
-        }
-
-        if (mRedLightDetected) {
-            mOnRedLightDetectedCallback.onRedLightDetected();
-        }
     }
 
     public void close() {
