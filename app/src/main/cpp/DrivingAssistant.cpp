@@ -51,7 +51,7 @@ void DrivingAssistant::detectLanesInFrame(Mat &frame) {
         mLaneIntersectionRight = 0.8 * mLaneIntersectionRight + 0.2 * intersections[1];
     }
 
-    if (mLaneIntersectionLeft > frame.cols * 0.4 || mLaneIntersectionRight < frame.cols * 0.6) {
+    if (mLaneIntersectionLeft > frame.cols * 0.25 || mLaneIntersectionRight < frame.cols * 0.75) {
         mLaneDepartureDetected = true;
     }
     else {

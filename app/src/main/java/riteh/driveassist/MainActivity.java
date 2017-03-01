@@ -5,6 +5,8 @@ import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.MediaPlayer;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -59,6 +61,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }
     };
     private ImageView mWarningImage;
+    private MediaPlayer mWarningSound;
 
     /*
     Setup camera view to use back camera and optimal resolution
@@ -141,6 +144,23 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         Log.d("MYDBG", logString);
     }
 
+    private void playWarningSound() {
+        if (mWarningSound != null) {
+            if (!mWarningSound.isPlaying()) {
+                mWarningSound.start();
+            }
+        }
+    }
+
+    private void stopWarningSound() {
+        if (mWarningSound != null) {
+            if (mWarningSound.isPlaying()) {
+                mWarningSound.pause();
+                mWarningSound.seekTo(0);
+            }
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -176,6 +196,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 public void run() {
                     l("Lane departure detected");
                     mWarningImage.setVisibility(View.VISIBLE);
+                    playWarningSound();
                 }
             });
         }
@@ -187,6 +208,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 public void run() {
                     l("Lane departure over");
                     mWarningImage.setVisibility(View.GONE);
+                    stopWarningSound();
                 }
             });
         }
@@ -205,6 +227,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }
 
         mDrivingAssistant = new DrivingAssistant(mOnLaneDeparture, mOnRedLightDetected);
+
+        mWarningSound = MediaPlayer.create(getApplicationContext(), R.raw.warning);
     }
 
     @Override
@@ -217,6 +241,12 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         if (mDrivingAssistant != null) {
             mDrivingAssistant.close();
             mDrivingAssistant = null;
+        }
+
+        if (mWarningSound != null) {
+            mWarningSound.stop();
+            mWarningSound.release();
+            mWarningSound = null;
         }
     }
 }
