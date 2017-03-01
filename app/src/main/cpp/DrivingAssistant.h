@@ -2,6 +2,7 @@
 #define DRIVEASSIST_DRIVINGASSISTANT_H
 
 #include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
 using namespace cv;
 
 class DrivingAssistant {
@@ -25,6 +26,12 @@ private:
     float mRightLaneMaxAngle;
 
     bool mLaneDepartureDetected;
+    bool mRedLightDetected;
+
+    Ptr<SimpleBlobDetector> mDetector;
+
+    Mat *mTemplate1, *mTemplate2, *mTemplate3;
+
 
 public:
     DrivingAssistant(
@@ -38,7 +45,8 @@ public:
 
 private:
 // Methods for RED LIGHT DETECTION
-    // TODO: ...
+    float templateMatchScore(Mat &image_part, Mat &temp);
+    Mat getTrafficLightFromKeypoint(Mat &image, KeyPoint kp);
     void detectRedLightsInFrame(Mat &frame);
 // Methods for LANE DETECTION
     void detectLanesInFrame(Mat &frame);

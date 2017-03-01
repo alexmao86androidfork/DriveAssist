@@ -1,6 +1,10 @@
 #include "DrivingAssistant.h"
 #include "DriveAssistUtils.h"
+#include "TemplateArrays.h"
 
+#include <android/log.h>
+
+#define LOG_D(LOG_TAG, ...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
 DrivingAssistant::DrivingAssistant(
         float roiOffsetLeft, float roiOffsetTop, float roiOffsetRight, float roiOffsetBottom) {
@@ -16,8 +20,39 @@ DrivingAssistant::DrivingAssistant(
 
     mLeftLaneMinAngle = 20;
     mLeftLaneMaxAngle = 70;
-    mRightLaneMinAngle = 89+20;
-    mRightLaneMaxAngle = 179-20;
+    mRightLaneMinAngle = 89 + 20;
+    mRightLaneMaxAngle = 179 - 20;
+
+    // Setup SimpleBlobDetector parameters.
+    SimpleBlobDetector::Params params;
+
+    // Filter by Color
+    params.filterByColor = true;
+    params.blobColor = 255;
+
+    // Filter by Area
+    params.filterByArea = true;
+    params.minArea = 8;
+
+    // Filter by Circularity
+    params.filterByCircularity = true;
+    params.minCircularity = 0.5;
+
+    // Filter by Convexity
+    params.filterByConvexity = true;
+    params.minConvexity = 0.5;
+
+    // Filter by Inertia
+    params.filterByInertia = true;
+    params.minInertiaRatio = 0.5;
+
+    mDetector = SimpleBlobDetector::create(params);
+
+    mTemplate1 = new Mat(54, 20, CV_8UC3, tarrays::template1);
+
+    mTemplate2 = new Mat(38, 13, CV_8UC3, tarrays::template2);
+
+    mTemplate3 = new Mat(179, 56, CV_8UC3, tarrays::template3);
 }
 
 void DrivingAssistant::update(Mat &frame) {
@@ -27,13 +62,93 @@ void DrivingAssistant::update(Mat &frame) {
 }
 
 // Methods for RED LIGHT DETECTION
-// TODO ...
-void DrivingAssistant::detectRedLightsInFrame(Mat &frame) {
-    // TODO: Implement red light detection logic
+
+float DrivingAssistant::templateMatchScore(Mat &image_part, Mat &temp) {
+
+    Mat resized_template;
+    resize(*mTemplate1, resized_template, image_part.size(), 0, 0, INTER_LINEAR);
+
+    Mat result = Mat(1, 1, CV_32FC1);
+
+    matchTemplate(image_part, resized_template, result, TM_CCORR_NORMED);
+
+    return result.at<float>(0, 0);
+}
+
+Mat DrivingAssistant::getTrafficLightFromKeypoint(Mat &image, KeyPoint kp) {
+    float BLOB_PADDING_FACTOR_UP = 0.2;
+    float BLOB_PADDING_FACTOR_SIDE = 0.2;
+    int BLOBS_IN_TRAFFIC_LIGHT = 3;
+
+    int x = std::max(0, int(kp.pt.x - (BLOB_PADDING_FACTOR_SIDE + 0.5) * kp.size));
+    int y = std::max(0, int(kp.pt.y - (BLOB_PADDING_FACTOR_SIDE + 0.5) * kp.size));
+
+    int width = std::min(image.cols-x, int(kp.size + 2 * BLOB_PADDING_FACTOR_SIDE * kp.size));
+    int height = std::min(image.rows-y, int((kp.size + 2 * BLOB_PADDING_FACTOR_UP + kp.size) *
+                                            BLOBS_IN_TRAFFIC_LIGHT));
+
+    Rect roi(x, y, width, height);
+
+    return image(roi);
+}
+
+void DrivingAssistant::detectRedLightsInFrame(Mat &in_frame) {
+    float TEMPLATE_MATCH_THRESHOLD = 0.82;
+
+    Mat frame;
+    cvtColor(in_frame, frame, CV_RGBA2BGR);
+
+    // Store BGR image for template matching
+    // Mat colorImage = frame.clone();
+
+    // Grab only RED channel
+    Mat redChannel;
+    extractChannel(frame, redChannel, 2);
+
+    // Top hat morph transform
+    Mat element = getStructuringElement(MORPH_RECT, Size(11, 11));
+    /// Apply the specified morphology operation
+    morphologyEx(redChannel, redChannel, MORPH_TOPHAT, element);
+
+    // Otsu's thresholding (Omitted on purpose)
+    // Possibly not needed
+
+    // Grab relevant frame part
+    Mat redChannelRelevant = redChannel.rowRange(0, frame.rows/2);
+
+    // Find blobs in this frame (red channel relevant part)
+    std::vector<KeyPoint> blobs;
+    mDetector->detect(redChannelRelevant, blobs);
+
+    // Check if filling this keypoint creates non-circular blobs
+    // If it does remove this blob, else keep it and expand that keypoint to new shape
+    // TODO: Implement this part if needed
+
+    // Confirm blobs are traffic lights (template matching)
+
+    std::vector<KeyPoint>::iterator blob = blobs.begin();
+    while(blob != blobs.end()) {
+        Mat imagePart = getTrafficLightFromKeypoint(frame, *blob);
+
+        if (templateMatchScore(imagePart, *mTemplate1) >=
+                TEMPLATE_MATCH_THRESHOLD) {
+            mRedLightDetected = true;
+            break;
+        } else if (templateMatchScore(imagePart, *mTemplate2) >=
+                        TEMPLATE_MATCH_THRESHOLD) {
+            mRedLightDetected = true;
+            break;
+        } else if (templateMatchScore(imagePart, *mTemplate3) >=
+                        TEMPLATE_MATCH_THRESHOLD) {
+            mRedLightDetected = true;
+            break;
+        }
+        ++blob;
+    }
 }
 
 bool DrivingAssistant::isRedLightDetected() {
-    return false;
+    return mRedLightDetected;
 }
 
 // Methods for LANE DETECTION
