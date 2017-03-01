@@ -31,6 +31,9 @@ private:
     float mRightLaneMinAngle;
     float mRightLaneMaxAngle;
 
+    cv::Vec2f mSlopes;
+    cv::Vec2f mIntersections;
+
     bool mLaneDepartureDetected;
     bool mRedLightDetected;
 
@@ -67,6 +70,7 @@ private:
     void detectRedLightsInFrame(Mat &inFrame);
     bool samePoint(KeyPoint kp1, KeyPoint kp2);
 // Methods for LANE DETECTION
+    void drawLanes(Mat &frame);
     void detectLanesInFrame(Mat &frame);
     bool laneIntersections(Mat &frame, Vec2f &intersections, Vec2f &slopes);
     bool detectLaneIntersection(Mat &region, Point region_offset, Size image_size, Vec2f angle_range, float &intersection, float &slope);

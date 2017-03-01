@@ -66,6 +66,7 @@ void DrivingAssistant::update(Mat &frame) {
 
     detectLanesInFrame(frame);
     detectRedLightsInFrame(frame);
+    drawLanes(frame);
 }
 
 // Methods for RED LIGHT DETECTION
@@ -186,17 +187,27 @@ bool DrivingAssistant::isRedLightDetected() {
 
 // Methods for LANE DETECTION
 
+void DrivingAssistant::drawLanes(Mat &frame) {
+    line(frame,
+         cv::Point((int) mIntersections[0], frame.rows),
+         cv::Point(frame.cols / 3, frame.rows + int(((frame.cols / 3) - mIntersections[0]) * mSlopes[0])),
+         cv::Scalar(0, 255, 0));
+
+    line(frame,
+         cv::Point(frame.cols * 2 / 3, int(frame.rows - (mIntersections[1] - (frame.cols * 2 / 3)) * mSlopes[1])),
+         cv::Point((int)mIntersections[1], frame.rows),
+         cv::Scalar(0, 255, 0));
+}
+
 bool DrivingAssistant::isLaneDeparted() {
     return mLaneDepartureDetected;
 }
 
 void DrivingAssistant::detectLanesInFrame(Mat &frame) {
-    cv::Vec2f intersections;
-    cv::Vec2f slopes;
-    bool lanesDetected = laneIntersections(frame, intersections, slopes);
+    bool lanesDetected = laneIntersections(frame, mIntersections, mSlopes);
     if (lanesDetected)  {
-        mLaneIntersectionLeft = 0.8 * mLaneIntersectionLeft + 0.2 * intersections[0];
-        mLaneIntersectionRight = 0.8 * mLaneIntersectionRight + 0.2 * intersections[1];
+        mLaneIntersectionLeft = 0.8 * mLaneIntersectionLeft + 0.2 * mIntersections[0];
+        mLaneIntersectionRight = 0.8 * mLaneIntersectionRight + 0.2 * mIntersections[1];
     }
 
     if (mLaneIntersectionLeft > frame.cols * 0.25 || mLaneIntersectionRight < frame.cols * 0.75) {
@@ -205,18 +216,12 @@ void DrivingAssistant::detectLanesInFrame(Mat &frame) {
     else {
         mLaneDepartureDetected = false;
     }
-
-    circle(frame, cv::Point(mLaneIntersectionLeft, frame.rows), 5, cv::Scalar(255, 0, 0), 2);
-    circle(frame, cv::Point(mLaneIntersectionRight, frame.rows), 5, cv::Scalar(255, 0, 0), 2);
 }
 
 bool DrivingAssistant::detectLaneIntersection(Mat &region, Point region_offset, Size image_size, Vec2f angle_range, float &intersection, float &slope)
 {
-    Mat hls;
-    cvtColor(region, hls, COLOR_BGR2HLS);
-
     Mat gray_region;
-    extractChannel(hls, gray_region, 1);
+    cvtColor(region, gray_region, COLOR_RGBA2GRAY);
 
     Mat thresholded_region; // Unused
     // Perform otsu thresholding to get optimal threshold
