@@ -60,6 +60,10 @@ DrivingAssistant::DrivingAssistant(
     mTemplateMatchThreshold = 0.82;
 
     mPixelTolerance = 50;
+    mShowLightScoreMax = 40;
+    mShowLightScoreIncrement = 5;
+    mShowLightScoreDecrement = 1;
+    mShowLightScoreThresh = 20;
 }
 
 void DrivingAssistant::update(Mat &frame) {
@@ -67,9 +71,18 @@ void DrivingAssistant::update(Mat &frame) {
     detectLanesInFrame(frame);
     detectRedLightsInFrame(frame);
     drawLanes(frame);
+    drawTrafficLights(frame);
 }
 
 // Methods for RED LIGHT DETECTION
+
+void DrivingAssistant::drawTrafficLights(Mat &frame) {
+    for (KeyPoint &trafficLight : mVisibleTrafficLights) {
+        circle(frame, trafficLight.pt, int(trafficLight.size)/2, Scalar(255, 0, 0), 1);
+        rectangle(frame, getTrafficLightRect(frame.cols, frame.rows, trafficLight),
+                  Scalar(255, 0, 0));
+    }
+}
 
 float DrivingAssistant::templateMatchScore(Mat &imagePart, Mat &temp) {
 
@@ -95,9 +108,7 @@ Rect DrivingAssistant::getTrafficLightRect(int max_w, int max_h, KeyPoint kp) {
 }
 
 Mat DrivingAssistant::getTrafficLightFromKeypoint(Mat &image, KeyPoint kp) {
-    Rect roi = getTrafficLightRect(image.cols, image.rows, kp);
-
-    return image(roi);
+    return image(getTrafficLightRect(image.cols, image.rows, kp));
 }
 
 bool DrivingAssistant::samePoint(KeyPoint kp1, KeyPoint kp2) {
@@ -109,12 +120,16 @@ void DrivingAssistant::detectRedLightsInFrame(Mat &inFrame) {
     Mat frame;
     cvtColor(inFrame, frame, COLOR_RGBA2BGR);
 
-    // Grab only RED channel
-    Mat redChannelRelevant;
-    extractChannel(frame, redChannelRelevant, 2);
-
+    // Grab channels
+    std::vector<Mat> channels;
     // Grab relevant frame part
-    redChannelRelevant = redChannelRelevant.rowRange(0, frame.rows/2);
+    Mat tmp = frame.rowRange(0, frame.rows/2);
+    tmp.convertTo(tmp, CV_16SC3);
+    split(tmp, channels);
+
+    Mat redChannelRelevant = cv::max(0, channels[2] - (channels[0] + channels[1]/3)/2);
+
+    redChannelRelevant.convertTo(redChannelRelevant, CV_8U);
 
     // Find blobs in this frame (red channel relevant part)
     std::vector<KeyPoint> blobs;
@@ -146,7 +161,8 @@ void DrivingAssistant::detectRedLightsInFrame(Mat &inFrame) {
         while(frameTrafficLight != blobs.end()) {
             if (samePoint((*existingTrafficLight).kp, *frameTrafficLight)) {
                 exists = true;
-                (*existingTrafficLight).score = std::min(40, (*existingTrafficLight).score + 5);
+                (*existingTrafficLight).score =
+                        std::min(mShowLightScoreMax, (*existingTrafficLight).score + mShowLightScoreIncrement);
                 (*existingTrafficLight).kp = *frameTrafficLight;
                 frameTrafficLight = blobs.erase(frameTrafficLight);
             } else {
@@ -155,27 +171,21 @@ void DrivingAssistant::detectRedLightsInFrame(Mat &inFrame) {
         }
 
         if (!exists) {
-            (*existingTrafficLight).score--;
+            (*existingTrafficLight).score -= mShowLightScoreDecrement;
             if ((*existingTrafficLight).score <= 0) {
                 existingTrafficLight = mTrafficLightsWScore.erase(existingTrafficLight);
                 continue;
             }
         }
 
-        if ((*existingTrafficLight).score >= 15) {
+        if ((*existingTrafficLight).score >= mShowLightScoreThresh) {
             mVisibleTrafficLights.push_back((*existingTrafficLight).kp);
         }
         ++existingTrafficLight;
     }
 
     for (KeyPoint &remainingBlob : blobs) {
-        mTrafficLightsWScore.push_back(TrafficLightWScore{remainingBlob, 5});
-    }
-
-    for (KeyPoint &t : mVisibleTrafficLights) {
-        circle(inFrame, t.pt, int(t.size)/2, cv::Scalar(255, 0, 0), 1);
-        rectangle(inFrame, getTrafficLightRect(inFrame.cols, inFrame.rows, t),
-                  cv::Scalar(255, 0, 0));
+        mTrafficLightsWScore.push_back(TrafficLightWScore{remainingBlob, mShowLightScoreIncrement});
     }
 
     mRedLightDetected = !mVisibleTrafficLights.empty();

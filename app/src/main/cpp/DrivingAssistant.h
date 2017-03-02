@@ -48,7 +48,7 @@ private:
     float mTemplateMatchThreshold;
 
     std::vector<TrafficLightWScore> mTrafficLightsWScore;
-    int mPixelTolerance;
+    int mPixelTolerance, mShowLightScoreMax, mShowLightScoreIncrement, mShowLightScoreDecrement, mShowLightScoreThresh;
 
     std::vector<KeyPoint> mVisibleTrafficLights;
 
@@ -64,6 +64,7 @@ public:
 
 private:
 // Methods for RED LIGHT DETECTION
+    void drawTrafficLights(Mat &frame);
     float templateMatchScore(Mat &image_part, Mat &temp);
     Rect getTrafficLightRect(int max_w, int max_h, KeyPoint kp);
     Mat getTrafficLightFromKeypoint(Mat &image, KeyPoint kp);
