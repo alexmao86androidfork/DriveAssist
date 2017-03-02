@@ -10,7 +10,7 @@ Java_riteh_driveassist_DrivingAssistant_nativeCreateDrivingAssistant(
         JNIEnv *env,
         jobject /*thisObject*/
 ) {
-    jlong drivingAssistantAddress = (jlong) new DrivingAssistant(0.1, 0.3, 0.45, 1.0);
+    jlong drivingAssistantAddress = (jlong) new DrivingAssistant(0.1, 0.6, 0.5, 1.0);
     return drivingAssistantAddress;
 }
 

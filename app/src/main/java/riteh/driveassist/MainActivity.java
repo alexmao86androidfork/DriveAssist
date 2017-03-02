@@ -130,13 +130,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     @Override
     public Mat onCameraFrame(Mat inputFrame) {
-        long timeStart = System.currentTimeMillis();
+        //long timeStart = System.currentTimeMillis();
 
         mDrivingAssistant.update(inputFrame);
 
-        long timeEnd = System.currentTimeMillis();
+        //long timeEnd = System.currentTimeMillis();
 
-        l("TIMEPERFRAME " + (timeEnd - timeStart));
+        //l("TIMEPERFRAME " + (timeEnd - timeStart));
         return inputFrame;
     }
 
