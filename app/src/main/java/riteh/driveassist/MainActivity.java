@@ -195,7 +195,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 @Override
                 public void run() {
                     l("Lane departure detected");
-                    mWarningImage.setVisibility(View.VISIBLE);
+                    //mWarningImage.setVisibility(View.VISIBLE);
                     playWarningSound();
                 }
             });
@@ -207,7 +207,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 @Override
                 public void run() {
                     l("Lane departure over");
-                    mWarningImage.setVisibility(View.GONE);
+                    //mWarningImage.setVisibility(View.GONE);
                     stopWarningSound();
                 }
             });

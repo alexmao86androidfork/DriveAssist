@@ -207,6 +207,16 @@ void DrivingAssistant::drawLanes(Mat &frame) {
          cv::Point(frame.cols * 2 / 3, int(frame.rows - (mIntersections[1] - (frame.cols * 2 / 3)) * mSlopes[1])),
          cv::Point((int)mIntersections[1], frame.rows),
          cv::Scalar(0, 255, 0));
+
+    line(frame,
+         cv::Point(int(frame.cols * 0.25), frame.rows),
+         cv::Point(int(frame.cols * 0.25), frame.rows - 20),
+         cv::Scalar(255, 0, 0));
+
+    line(frame,
+         cv::Point(int(frame.cols * 0.75), frame.rows),
+         cv::Point(int(frame.cols * 0.75), frame.rows - 20),
+         cv::Scalar(255, 0, 0));
 }
 
 bool DrivingAssistant::isLaneDeparted() {
@@ -214,10 +224,16 @@ bool DrivingAssistant::isLaneDeparted() {
 }
 
 void DrivingAssistant::detectLanesInFrame(Mat &frame) {
-    bool lanesDetected = laneIntersections(frame, mIntersections, mSlopes);
+    Vec2f newIntersection;
+    Vec2f newSlopes;
+    bool lanesDetected = laneIntersections(frame, newIntersection, newSlopes);
     if (lanesDetected)  {
-        mLaneIntersectionLeft = 0.8 * mLaneIntersectionLeft + 0.2 * mIntersections[0];
-        mLaneIntersectionRight = 0.8 * mLaneIntersectionRight + 0.2 * mIntersections[1];
+        mLaneIntersectionLeft = 0.8 * mLaneIntersectionLeft + 0.2 * newIntersection[0];
+        mLaneIntersectionRight = 0.8 * mLaneIntersectionRight + 0.2 * newIntersection[1];
+        mIntersections[0] = 0.8 * mIntersections[0] + 0.2 * newIntersection[0];
+        mIntersections[1] = 0.8 * mIntersections[1] + 0.2 * newIntersection[1];
+        mSlopes[0] = 0.8 * mSlopes[0] + 0.2 * newSlopes[0];
+        mSlopes[1] = 0.8 * mSlopes[1] + 0.2 * newSlopes[1];
     }
 
     if (mLaneIntersectionLeft > frame.cols * 0.25 || mLaneIntersectionRight < frame.cols * 0.75) {
